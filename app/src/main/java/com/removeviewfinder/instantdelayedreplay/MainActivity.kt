@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Set up the listeners for take photo and video capture buttons\
-        viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
+//        viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
         viewBinding.btnMore.setOnClickListener { increaseBuffer() }
         viewBinding.btnLess.setOnClickListener { decreaseBuffer() }
         viewBinding.bufferSize.setText("0")
