@@ -42,9 +42,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
-    private lateinit var binding: ActivityMainBinding
-
-    private val pickerVals = arrayOf("0", "50", "100", "150", "200", "250", "300",
+    private val bufferVals = arrayOf("0", "50", "100", "150", "200", "250", "300",
                                     "350", "400", "450", "500", "550", "600")
 
     var buffersize = 0
@@ -85,9 +83,15 @@ class MainActivity : AppCompatActivity() {
                 "Landscape" -> portrait = false
                 "Undefined" -> portrait = false
             }
-            viewBinding.bufferAmount.setText("Frames in buffer: " + bitmapBuffer.size.toString())
-            if (bitmapBuffer.size > 0) {
-                viewBinding.imageView.setImageBitmap(bitmapBuffer.first())
+            try {
+                viewBinding.bufferAmount.setText("Frames in buffer: " + bitmapBuffer.size.toString())
+                if (bitmapBuffer.size > 0) {
+                    viewBinding.imageView.setImageBitmap(bitmapBuffer.first())
+                }
+            }
+            catch (exc : Exception) {
+                // Drop frame when changing the buffer size causes a ConcurrentModificationException
+                Log.e(TAG, "Bitmap setting exception: ", exc)
             }
             viewBinding.imageView.postDelayed(this, 10)
         }
@@ -109,7 +113,7 @@ class MainActivity : AppCompatActivity() {
         // Set up the listeners for take photo and video capture buttons\
 //        viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
         viewBinding.bufferSize.setText("Buffer size: 0")
-        viewBinding.bufferSize.setOnClickListener { showNumberPickerDialog() }
+        viewBinding.bufferSize.setOnClickListener { showBufferPickerDialog() }
         viewBinding.changeCamera.setOnClickListener {
             if (lensFacing == CameraSelector.DEFAULT_BACK_CAMERA) {
                 lensFacing = CameraSelector.DEFAULT_FRONT_CAMERA
@@ -126,24 +130,24 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread(r)
     }
 
-    fun showNumberPickerDialog() {
+    fun showBufferPickerDialog() {
         val d = Dialog(this@MainActivity)
-        d.setTitle("NumberPicker")
+        d.setTitle("Buffer size")
         d.setContentView(R.layout.bufferdialog)
         val b1: Button = d.findViewById(R.id.button1) as Button
         val b2: Button = d.findViewById(R.id.button2) as Button
         val np = d.findViewById(R.id.numberPicker1) as NumberPicker
         np.minValue = 0
-        np.maxValue = pickerVals.size - 1
-        np.displayedValues = pickerVals
+        np.maxValue = bufferVals.size - 1
+        np.displayedValues = bufferVals
         np.wrapSelectorWheel = false
-        np.value = pickerVals.indexOf(buffersize.toString())
+        np.value = bufferVals.indexOf(buffersize.toString())
         b1.setOnClickListener {
-            if (pickerVals[np.value].toInt() < buffersize) {
-                bitmapBuffer = mutableListOf<Bitmap>()
+            if (bufferVals[np.value].toInt() < buffersize) {
+                bitmapBuffer = bitmapBuffer.subList(bitmapBuffer.size-bufferVals[np.value].toInt(), bitmapBuffer.size)
             }
-            buffersize = pickerVals[np.value].toInt()
-            viewBinding.bufferSize.setText("Buffer size: " + pickerVals[np.value])
+            buffersize = bufferVals[np.value].toInt()
+            viewBinding.bufferSize.setText("Buffer size: " + bufferVals[np.value])
             d.dismiss()
         }
         b2.setOnClickListener {d.dismiss()}
