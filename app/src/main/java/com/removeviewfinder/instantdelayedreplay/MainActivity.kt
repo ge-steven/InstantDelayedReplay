@@ -3,12 +3,14 @@ package com.removeviewfinder.instantdelayedreplay
 
 import android.Manifest
 import android.app.Dialog
+import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.*
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.widget.Button
 import android.widget.NumberPicker
@@ -16,12 +18,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.Recorder
-import androidx.camera.video.Recording
+import androidx.camera.video.*
 import androidx.camera.video.VideoCapture
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import com.removeviewfinder.instantdelayedreplay.databinding.ActivityMainBinding
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -32,8 +36,6 @@ var lensFacing = CameraSelector.DEFAULT_BACK_CAMERA
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
-
-    private var imageCapture: ImageCapture? = null
 
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
@@ -111,13 +113,13 @@ class MainActivity : AppCompatActivity() {
         viewBinding.changeCamera.setOnClickListener {
             if (lensFacing == CameraSelector.DEFAULT_BACK_CAMERA) {
                 lensFacing = CameraSelector.DEFAULT_FRONT_CAMERA
-                viewBinding.changeCamera.setText("back camera")
             } else {
                 lensFacing = CameraSelector.DEFAULT_BACK_CAMERA
-                viewBinding.changeCamera.setText("front camera")
             }
             startCamera()
         }
+        viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
+
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -148,7 +150,74 @@ class MainActivity : AppCompatActivity() {
         d.show()
     }
 
-    private fun captureVideo() {}
+    // Implements VideoCapture use case, including start and stop capturing.
+    private fun captureVideo() {
+        val videoCapture = this.videoCapture ?: return
+
+        viewBinding.videoCaptureButton.isEnabled = false
+
+        val curRecording = recording
+        if (curRecording != null) {
+            // Stop the current recording session.
+            curRecording.stop()
+            recording = null
+            return
+        }
+
+        // create and start a new recording session
+        val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+            .format(System.currentTimeMillis())
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/CameraX-Video")
+            }
+        }
+
+        val mediaStoreOutputOptions = MediaStoreOutputOptions
+            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+            .setContentValues(contentValues)
+            .build()
+        recording = videoCapture.output
+            .prepareRecording(this, mediaStoreOutputOptions)
+            .apply {
+                if (PermissionChecker.checkSelfPermission(this@MainActivity,
+                        Manifest.permission.RECORD_AUDIO) ==
+                    PermissionChecker.PERMISSION_GRANTED)
+                {
+                    withAudioEnabled()
+                }
+            }
+            .start(ContextCompat.getMainExecutor(this)) { recordEvent ->
+                when(recordEvent) {
+                    is VideoRecordEvent.Start -> {
+                        viewBinding.videoCaptureButton.apply {
+                            text = getString(R.string.stop_capture)
+                            isEnabled = true
+                        }
+                    }
+                    is VideoRecordEvent.Finalize -> {
+                        if (!recordEvent.hasError()) {
+                            val msg = "Video capture succeeded: " +
+                                    "${recordEvent.outputResults.outputUri}"
+                            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT)
+                                .show()
+                            Log.d(TAG, msg)
+                        } else {
+                            recording?.close()
+                            recording = null
+                            Log.e(TAG, "Video capture ends with error: " +
+                                    "${recordEvent.error}")
+                        }
+                        viewBinding.videoCaptureButton.apply {
+                            text = getString(R.string.start_capture)
+                            isEnabled = true
+                        }
+                    }
+                }
+            }
+    }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -163,8 +232,11 @@ class MainActivity : AppCompatActivity() {
                 .also {
                     it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
                 }
-
-            imageCapture = ImageCapture.Builder().build()
+            val recorder = Recorder.Builder()
+                .setQualitySelector(QualitySelector.from(Quality.HIGHEST,
+                    FallbackStrategy.higherQualityOrLowerThan(Quality.SD)))
+                .build()
+            videoCapture = VideoCapture.withOutput(recorder)
 
             val imageAnalyzer = ImageAnalysis.Builder()
                 .build()
@@ -184,9 +256,18 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.unbindAll()
 
                 // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture, imageAnalyzer)
-
+                try {
+                    viewBinding.videoCaptureButton.isEnabled = true
+                    viewBinding.videoCaptureButton.setText("Start Video Capture")
+                    cameraProvider.bindToLifecycle(
+                        this, cameraSelector, preview, imageAnalyzer, videoCapture
+                    )
+                } catch (exc: Exception) {
+                    viewBinding.videoCaptureButton.isEnabled = false
+                    viewBinding.videoCaptureButton.setText("Analysis and recording not supported")
+                    cameraProvider.bindToLifecycle(
+                        this, cameraSelector, preview, imageAnalyzer)
+                }
 
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)

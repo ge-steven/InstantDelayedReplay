@@ -38,29 +38,20 @@ class DelayedPreview(private val listener: DelayedPreviewListener) : ImageAnalys
 
         if (portrait){
             matrix.postRotate(90F)
-            bitmap = Bitmap.createBitmap(
-                bitmap,
-                0,
-                0,
-                bitmap.getWidth(),
-                bitmap.getHeight(),
-                matrix,
-                true
-            )
-
             if (lensFacing == CameraSelector.DEFAULT_FRONT_CAMERA) {
-                matrix.postRotate(90F)
-                bitmap = Bitmap.createBitmap(
-                    bitmap,
-                    0,
-                    0,
-                    bitmap.getWidth(),
-                    bitmap.getHeight(),
-                    matrix,
-                    true
-                )
+                matrix.postRotate(180F)
             }
         }
+
+        bitmap = Bitmap.createBitmap(
+            bitmap,
+            0,
+            0,
+            bitmap.getWidth(),
+            bitmap.getHeight(),
+            matrix,
+            true
+        )
 
         listener(bitmap)
         image.close()

@@ -26,17 +26,17 @@
         app:layout_constraintWidth_default="percent"
         app:layout_constraintWidth_percent="1"/>
 
-<!--    <Button-->
-<!--        android:id="@+id/video_capture_button"-->
-<!--        android:layout_width="0dp"-->
-<!--        android:layout_height="0dp"-->
-<!--        android:text="@string/start_capture"-->
-<!--        app:layout_constraintRight_toRightOf="@+id/imageView"-->
-<!--        app:layout_constraintBottom_toBottomOf="parent"-->
-<!--        app:layout_constraintHeight_default="percent"-->
-<!--        app:layout_constraintHeight_percent="1"-->
-<!--        app:layout_constraintWidth_default="percent"-->
-<!--        app:layout_constraintWidth_percent="0.1" />-->
+    <Button
+        android:id="@+id/video_capture_button"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:text="@string/start_capture"
+        app:layout_constraintRight_toRightOf="@+id/imageView"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHeight_default="percent"
+        app:layout_constraintHeight_percent="1"
+        app:layout_constraintWidth_default="percent"
+        app:layout_constraintWidth_percent="0.16" />
 
     <TextView
         android:id="@+id/buffer_amount"
@@ -57,7 +57,7 @@
         app:layout_constraintLeft_toLeftOf="@+id/imageView"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHeight_default="percent"
-        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHeight_percent="0.375"
         app:layout_constraintWidth_default="percent"
         app:layout_constraintWidth_percent="0.16"
         android:layout_weight="1"
@@ -71,12 +71,12 @@
         app:layout_constraintLeft_toLeftOf="@+id/imageView"
         app:layout_constraintBottom_toTopOf="@id/buffer_size"
         app:layout_constraintHeight_default="percent"
-        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHeight_percent="0.375"
         app:layout_constraintWidth_default="percent"
         app:layout_constraintWidth_percent="0.16"
         android:layout_weight="1"
         android:textAlignment="center"
         android:gravity="center_horizontal|center_vertical"
-        android:text="front camera"/>
+        android:text="switch camera"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
