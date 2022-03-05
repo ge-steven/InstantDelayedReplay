@@ -1,4 +1,4 @@
-package com.removeviewfinder.instantdelayedreplay
+package com.instantdelayedreplay.instantdelayedreplay
 
 
 import android.Manifest
@@ -23,7 +23,7 @@ import androidx.camera.video.VideoCapture
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
-import com.removeviewfinder.instantdelayedreplay.databinding.ActivityMainBinding
+import com.instantdelayedreplay.instantdelayedreplay.databinding.ActivityMainBinding
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService

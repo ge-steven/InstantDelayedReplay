@@ -1,4 +1,4 @@
-package com.removeviewfinder.instantdelayedreplay
+package com.instantdelayedreplay.instantdelayedreplay
 
 import org.junit.Test
 

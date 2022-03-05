@@ -1,11 +1,10 @@
-package com.removeviewfinder.instantdelayedreplay
+package com.instantdelayedreplay.instantdelayedreplay
 
 import android.graphics.*
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
 
 class DelayedPreview(private val listener: DelayedPreviewListener) : ImageAnalysis.Analyzer {
 
