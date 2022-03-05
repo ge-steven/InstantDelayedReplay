@@ -29,25 +29,31 @@ import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+// DelayedPreviewListener return type
+typealias DelayedPreviewListener = (bitmap: Bitmap) -> Unit
 
-typealias DelayedPreviewListener = (luma: Bitmap) -> Unit
+// Phone in portrait or landscape
 var portrait : Boolean = true
+// Choose front or back camera
 var lensFacing = CameraSelector.DEFAULT_BACK_CAMERA
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
 
+    // Camera variables
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
 
     private lateinit var cameraExecutor: ExecutorService
 
+    // Buffer of bitmaps for delayed viewfinder
     private val bufferVals = arrayOf("0", "50", "100", "150", "200", "250", "300",
                                     "350", "400", "450", "500", "550", "600")
 
     var buffersize = 0
     var bitmapBuffer = mutableListOf<Bitmap>()
 
+    // Permission request result
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults:
         IntArray) {
@@ -64,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
+    // Viewfinder update thread
     val r: Runnable = object : Runnable {
         // extension property to get screen orientation
         val Context.orientation:String
@@ -85,6 +91,7 @@ class MainActivity : AppCompatActivity() {
             }
             try {
                 viewBinding.bufferAmount.setText("Frames in buffer: " + bitmapBuffer.size.toString())
+                // Set viewfinder to oldest bitmap
                 if (bitmapBuffer.size > 0) {
                     viewBinding.imageView.setImageBitmap(bitmapBuffer.first())
                 }
@@ -97,6 +104,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Initialization
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewBinding = ActivityMainBinding.inflate(layoutInflater)
@@ -111,7 +119,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Set up the listeners for take photo and video capture buttons\
-//        viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
         viewBinding.bufferSize.setText("Buffer size: 0")
         viewBinding.bufferSize.setOnClickListener { showBufferPickerDialog() }
         viewBinding.changeCamera.setOnClickListener {
@@ -124,12 +131,11 @@ class MainActivity : AppCompatActivity() {
         }
         viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
 
-
         cameraExecutor = Executors.newSingleThreadExecutor()
-
         runOnUiThread(r)
     }
 
+    // Dialog for choosing buffer size
     fun showBufferPickerDialog() {
         val d = Dialog(this@MainActivity)
         d.setTitle("Buffer size")
@@ -137,11 +143,16 @@ class MainActivity : AppCompatActivity() {
         val b1: Button = d.findViewById(R.id.button1) as Button
         val b2: Button = d.findViewById(R.id.button2) as Button
         val np = d.findViewById(R.id.numberPicker1) as NumberPicker
+
+        // Set available buffer sizes
         np.minValue = 0
         np.maxValue = bufferVals.size - 1
         np.displayedValues = bufferVals
         np.wrapSelectorWheel = false
+        // Set default value to current buffer size
         np.value = bufferVals.indexOf(buffersize.toString())
+
+        // Update buffer size, when pressing set button
         b1.setOnClickListener {
             if (bufferVals[np.value].toInt() < buffersize) {
                 bitmapBuffer = bitmapBuffer.subList(bitmapBuffer.size-bufferVals[np.value].toInt(), bitmapBuffer.size)
@@ -150,7 +161,10 @@ class MainActivity : AppCompatActivity() {
             viewBinding.bufferSize.setText("Buffer size: " + bufferVals[np.value])
             d.dismiss()
         }
+
+        // Ignore when pressing cancel button
         b2.setOnClickListener {d.dismiss()}
+
         d.show()
     }
 
@@ -223,6 +237,7 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
+    // Initialize camera
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
@@ -280,12 +295,13 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-
+    // Get permissions
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(
             baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
+    // Clean up on exit
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()

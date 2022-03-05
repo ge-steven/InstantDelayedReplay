@@ -9,14 +9,9 @@ import java.nio.ByteBuffer
 
 class DelayedPreview(private val listener: DelayedPreviewListener) : ImageAnalysis.Analyzer {
 
-    private fun ByteBuffer.toByteArray(): ByteArray {
-        rewind()    // Rewind the buffer to zero
-        val data = ByteArray(remaining())
-        get(data)   // Copy the buffer into a byte array
-        return data // Return the byte array
-    }
-
+    // Convert camera image data to bitmap
     override fun analyze(image: ImageProxy) {
+        // To bitmap conversion
         val yBuffer = image.planes[0].buffer // Y
         val vuBuffer = image.planes[2].buffer // VU
 
@@ -34,8 +29,8 @@ class DelayedPreview(private val listener: DelayedPreviewListener) : ImageAnalys
         val imageBytes = out.toByteArray()
         var bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 
+        // Rotate bitmap to correct orientation for viewfinder
         val matrix = Matrix()
-
         if (portrait){
             matrix.postRotate(90F)
             if (lensFacing == CameraSelector.DEFAULT_FRONT_CAMERA) {
@@ -43,6 +38,7 @@ class DelayedPreview(private val listener: DelayedPreviewListener) : ImageAnalys
             }
         }
 
+        // Apply rotation
         bitmap = Bitmap.createBitmap(
             bitmap,
             0,
