@@ -48,46 +48,35 @@
         app:layout_constraintLeft_toLeftOf="@+id/imageView"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintWidth_default="percent"
-        app:layout_constraintWidth_percent="0.1" />
+        app:layout_constraintWidth_percent="0.16" />
 
     <Button
-        android:id="@+id/btn_more"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintLeft_toLeftOf="@+id/imageView"
-        app:layout_constraintBottom_toTopOf="@+id/buffer_size"
-        app:layout_constraintHeight_default="percent"
-        app:layout_constraintHeight_percent="0.25"
-        app:layout_constraintWidth_default="percent"
-        app:layout_constraintWidth_percent="0.1"
-        android:layout_weight="1"
-        android:text="+" />
-
-    <TextView
         android:id="@+id/buffer_size"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintLeft_toLeftOf="@+id/imageView"
-        app:layout_constraintBottom_toTopOf="@+id/btn_less"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHeight_default="percent"
         app:layout_constraintHeight_percent="0.25"
         app:layout_constraintWidth_default="percent"
-        app:layout_constraintWidth_percent="0.1"
+        app:layout_constraintWidth_percent="0.16"
         android:layout_weight="1"
         android:textAlignment="center"
         android:gravity="center_horizontal|center_vertical"/>
 
     <Button
-        android:id="@+id/btn_less"
+        android:id="@+id/change_camera"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:text="-"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="@+id/imageView"
+        app:layout_constraintBottom_toTopOf="@id/buffer_size"
         app:layout_constraintHeight_default="percent"
         app:layout_constraintHeight_percent="0.25"
-        app:layout_constraintLeft_toLeftOf="@+id/imageView"
         app:layout_constraintWidth_default="percent"
-        app:layout_constraintWidth_percent="0.1" />
+        app:layout_constraintWidth_percent="0.16"
+        android:layout_weight="1"
+        android:textAlignment="center"
+        android:gravity="center_horizontal|center_vertical"
+        android:text="front camera"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

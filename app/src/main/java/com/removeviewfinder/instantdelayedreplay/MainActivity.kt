@@ -1,11 +1,17 @@
 package com.removeviewfinder.instantdelayedreplay
 
+
 import android.Manifest
+import android.app.Dialog
+import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.*
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
+import android.widget.NumberPicker
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -16,65 +22,13 @@ import androidx.camera.video.VideoCapture
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.removeviewfinder.instantdelayedreplay.databinding.ActivityMainBinding
-import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 
-import android.content.Context
-import android.content.res.Configuration
-
-
 typealias DelayedPreviewListener = (luma: Bitmap) -> Unit
 var portrait : Boolean = true
-
-class DelayedPreview(private val listener: DelayedPreviewListener) : ImageAnalysis.Analyzer {
-
-    private fun ByteBuffer.toByteArray(): ByteArray {
-        rewind()    // Rewind the buffer to zero
-        val data = ByteArray(remaining())
-        get(data)   // Copy the buffer into a byte array
-        return data // Return the byte array
-    }
-
-    override fun analyze(image: ImageProxy) {
-        val yBuffer = image.planes[0].buffer // Y
-        val vuBuffer = image.planes[2].buffer // VU
-
-        val ySize = yBuffer.remaining()
-        val vuSize = vuBuffer.remaining()
-
-        val nv21 = ByteArray(ySize + vuSize)
-
-        yBuffer.get(nv21, 0, ySize)
-        vuBuffer.get(nv21, ySize, vuSize)
-
-        val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
-        val out = ByteArrayOutputStream()
-        yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 50, out)
-        val imageBytes = out.toByteArray()
-        var bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-
-        val matrix = Matrix()
-        matrix.postRotate(90F)
-
-        if (portrait){
-                bitmap = Bitmap.createBitmap(
-                bitmap,
-                0,
-                0,
-                bitmap.getWidth(),
-                bitmap.getHeight(),
-                matrix,
-                true
-            )
-        }
-
-        listener(bitmap)
-        image.close()
-    }
-}
+var lensFacing = CameraSelector.DEFAULT_BACK_CAMERA
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
@@ -88,10 +42,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    private val pickerVals = arrayOf("0", "50", "100", "150", "200", "250")
+    private val pickerVals = arrayOf("0", "50", "100", "150", "200", "250", "300",
+                                    "350", "400", "450", "500", "550", "600")
 
     var buffersize = 0
-    var bufferid = 0
+    var bitmapBuffer = mutableListOf<Bitmap>()
 
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults:
@@ -109,7 +64,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    var currentBitmap = mutableListOf<Bitmap>()
 
     val r: Runnable = object : Runnable {
         // extension property to get screen orientation
@@ -129,9 +83,9 @@ class MainActivity : AppCompatActivity() {
                 "Landscape" -> portrait = false
                 "Undefined" -> portrait = false
             }
-            viewBinding.bufferAmount.setText("Frames in buffer: " + currentBitmap.size.toString())
-            if (currentBitmap.size > 0) {
-                viewBinding.imageView.setImageBitmap(currentBitmap.first())
+            viewBinding.bufferAmount.setText("Frames in buffer: " + bitmapBuffer.size.toString())
+            if (bitmapBuffer.size > 0) {
+                viewBinding.imageView.setImageBitmap(bitmapBuffer.first())
             }
             viewBinding.imageView.postDelayed(this, 10)
         }
@@ -152,36 +106,47 @@ class MainActivity : AppCompatActivity() {
 
         // Set up the listeners for take photo and video capture buttons\
 //        viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
-        viewBinding.btnMore.setOnClickListener { increaseBuffer() }
-        viewBinding.btnLess.setOnClickListener { decreaseBuffer() }
-        viewBinding.bufferSize.setText("0")
+        viewBinding.bufferSize.setText("Buffer size: 0")
+        viewBinding.bufferSize.setOnClickListener { showNumberPickerDialog() }
+        viewBinding.changeCamera.setOnClickListener {
+            if (lensFacing == CameraSelector.DEFAULT_BACK_CAMERA) {
+                lensFacing = CameraSelector.DEFAULT_FRONT_CAMERA
+                viewBinding.changeCamera.setText("back camera")
+            } else {
+                lensFacing = CameraSelector.DEFAULT_BACK_CAMERA
+                viewBinding.changeCamera.setText("front camera")
+            }
+            startCamera()
+        }
+
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         runOnUiThread(r)
     }
 
-    fun increaseBuffer() {
-        if (bufferid < pickerVals.size-1) {
-            bufferid += 1
-            viewBinding.bufferSize.setText(pickerVals[bufferid])
-            buffersize = pickerVals[bufferid].toInt()
+    fun showNumberPickerDialog() {
+        val d = Dialog(this@MainActivity)
+        d.setTitle("NumberPicker")
+        d.setContentView(R.layout.bufferdialog)
+        val b1: Button = d.findViewById(R.id.button1) as Button
+        val b2: Button = d.findViewById(R.id.button2) as Button
+        val np = d.findViewById(R.id.numberPicker1) as NumberPicker
+        np.minValue = 0
+        np.maxValue = pickerVals.size - 1
+        np.displayedValues = pickerVals
+        np.wrapSelectorWheel = false
+        np.value = pickerVals.indexOf(buffersize.toString())
+        b1.setOnClickListener {
+            if (pickerVals[np.value].toInt() < buffersize) {
+                bitmapBuffer = mutableListOf<Bitmap>()
+            }
+            buffersize = pickerVals[np.value].toInt()
+            viewBinding.bufferSize.setText("Buffer size: " + pickerVals[np.value])
+            d.dismiss()
         }
+        b2.setOnClickListener {d.dismiss()}
+        d.show()
     }
-
-    fun decreaseBuffer() {
-        if (bufferid > 0) {
-            bufferid -= 1
-            viewBinding.bufferSize.setText(pickerVals[bufferid])
-            buffersize = pickerVals[bufferid].toInt()
-//            currentBitmap = currentBitmap.subList(currentBitmap.size-pickerVals[bufferid].toInt(), currentBitmap.size)
-            currentBitmap = mutableListOf<Bitmap>()
-        }
-    }
-
-    fun setupImageView(bitmap: Bitmap) {
-        viewBinding.imageView.setImageBitmap(bitmap)
-    }
-
 
     private fun captureVideo() {}
 
@@ -205,14 +170,14 @@ class MainActivity : AppCompatActivity() {
                 .build()
                 .also {
                     it.setAnalyzer(cameraExecutor, DelayedPreview { luma ->
-                        if (currentBitmap.size > buffersize) { if (currentBitmap.size > 1) {currentBitmap.removeAt(0)}}
-                        currentBitmap.add(luma)
+                        if (bitmapBuffer.size > buffersize) { if (bitmapBuffer.size > 1) {bitmapBuffer.removeAt(0)}}
+                        bitmapBuffer.add(luma)
                         Log.d(TAG, requestedOrientation.toString())
                     })
                 }
 
             // Select back camera as a default
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            val cameraSelector = lensFacing
 
             try {
                 // Unbind use cases before rebinding
