@@ -28,6 +28,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.max
 
 // DelayedPreviewListener return type
 typealias DelayedPreviewListener = (bitmap: Bitmap) -> Unit
@@ -47,10 +48,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
 
     // Buffer of bitmaps for delayed viewfinder
-    private val bufferVals = arrayOf("0", "50", "100", "150", "200", "250", "300",
-                                    "350", "400", "450", "500", "550", "600")
-
-    var buffersize = 0
+    var buffersize = 500
+    var bufferId = buffersize-1
     var bitmapBuffer = mutableListOf<Bitmap>()
 
     // Permission request result
@@ -90,10 +89,11 @@ class MainActivity : AppCompatActivity() {
                 "Undefined" -> portrait = false
             }
             try {
-                viewBinding.bufferAmount.setText("Frames in buffer: " + bitmapBuffer.size.toString())
+                bufferId = max(0, bitmapBuffer.size - viewBinding.bufferSize.value.toInt() - 1)
+                viewBinding.bufferAmount.setText("Buffer size: " + bitmapBuffer.size.toString())
                 // Set viewfinder to oldest bitmap
                 if (bitmapBuffer.size > 0) {
-                    viewBinding.imageView.setImageBitmap(bitmapBuffer.first())
+                    viewBinding.imageView.setImageBitmap(bitmapBuffer[bufferId])
                 }
             }
             catch (exc : Exception) {
@@ -118,9 +118,7 @@ class MainActivity : AppCompatActivity() {
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
 
-        // Set up the listeners for take photo and video capture buttons\
-        viewBinding.bufferSize.setText("Buffer size: 0")
-        viewBinding.bufferSize.setOnClickListener { showBufferPickerDialog() }
+        // Set up the listeners for take photo and video capture buttons
         viewBinding.changeCamera.setOnClickListener {
             if (lensFacing == CameraSelector.DEFAULT_BACK_CAMERA) {
                 lensFacing = CameraSelector.DEFAULT_FRONT_CAMERA
@@ -133,39 +131,6 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         runOnUiThread(r)
-    }
-
-    // Dialog for choosing buffer size
-    fun showBufferPickerDialog() {
-        val d = Dialog(this@MainActivity)
-        d.setTitle("Buffer size")
-        d.setContentView(R.layout.bufferdialog)
-        val b1: Button = d.findViewById(R.id.button1) as Button
-        val b2: Button = d.findViewById(R.id.button2) as Button
-        val np = d.findViewById(R.id.numberPicker1) as NumberPicker
-
-        // Set available buffer sizes
-        np.minValue = 0
-        np.maxValue = bufferVals.size - 1
-        np.displayedValues = bufferVals
-        np.wrapSelectorWheel = false
-        // Set default value to current buffer size
-        np.value = bufferVals.indexOf(buffersize.toString())
-
-        // Update buffer size, when pressing set button
-        b1.setOnClickListener {
-            if (bufferVals[np.value].toInt() < buffersize) {
-                bitmapBuffer = bitmapBuffer.subList(bitmapBuffer.size-bufferVals[np.value].toInt(), bitmapBuffer.size)
-            }
-            buffersize = bufferVals[np.value].toInt()
-            viewBinding.bufferSize.setText("Buffer size: " + bufferVals[np.value])
-            d.dismiss()
-        }
-
-        // Ignore when pressing cancel button
-        b2.setOnClickListener {d.dismiss()}
-
-        d.show()
     }
 
     // Implements VideoCapture use case, including start and stop capturing.
