@@ -89,9 +89,9 @@ class MainActivity : AppCompatActivity() {
                 "Undefined" -> portrait = false
             }
             try {
-                bufferId = max(0, bitmapBuffer.size - viewBinding.bufferSize.value.toInt() - 1)
                 viewBinding.bufferAmount.setText("Buffer size: " + bitmapBuffer.size.toString())
-                // Set viewfinder to oldest bitmap
+                // Set viewfinder to bitmap according to slider
+                bufferId = max(0, bitmapBuffer.size - viewBinding.bufferSize.value.toInt() - 1)
                 if (bitmapBuffer.size > 0) {
                     viewBinding.imageView.setImageBitmap(bitmapBuffer[bufferId])
                 }
